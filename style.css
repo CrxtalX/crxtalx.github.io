@@ -166,4 +166,4 @@ footer { padding: 0 clamp(16px, 4vw, 48px) 32px; color: var(--muted); font-size:
 }
 @media (prefers-reduced-motion: no-preference) {
   .primary, .ghost, .quick button { transition: filter 0.15s, border-color 0.15s; }
-}
+} 
