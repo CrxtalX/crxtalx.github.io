@@ -400,4 +400,4 @@ setInterval(tick, 1000);
 window.addEventListener('online', refresh);                       // internet came back: reconnect now
 document.addEventListener('visibilitychange', () => {            // came back to the tab: catch up now
   if (!document.hidden && nextRefreshAt && onlineNow() >= nextRefreshAt) refresh();
-});
+}); 
