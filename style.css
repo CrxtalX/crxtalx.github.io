@@ -54,9 +54,11 @@ button, input { font: inherit; color: inherit; }
 .muted { color: var(--muted); }
 
 .layout {
-  display: grid; grid-template-columns: 170px minmax(0, 1fr) 360px; gap: 24px;
-  padding: 24px clamp(16px, 4vw, 48px) 40px; align-items: start;
+  display: flex; gap: 24px; align-items: flex-start;
+  padding: 24px clamp(16px, 4vw, 48px) 40px;
 }
+.layout > .market { flex: 1 1 0; min-width: 0; }
+.layout > .side { flex: 0 0 360px; }
 
 /* Market */
 .market-head { display: flex; gap: 16px; align-items: center; margin-bottom: 12px; }
@@ -142,28 +144,29 @@ dialog #add-amount { width: 100%; padding: 10px 12px; font-size: 1.2rem; backgro
 
 footer { padding: 0 clamp(16px, 4vw, 48px) 32px; color: var(--muted); font-size: 0.85rem; }
 
-/* Ad slot (left rail) */
-.ad-rail { position: sticky; top: 16px; }
-.ad {
+/* Left box (ad slot). If an ad blocker hides it, the rest of the page simply fills the space. */
+.rail-left { flex: 0 0 170px; position: sticky; top: 16px; }
+.rail-box {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
   min-height: calc(100vh - 32px); padding: 16px; text-align: center;
   background: var(--surface); border: 1px dashed var(--line); border-radius: 10px;
 }
-.ad-text { font-family: var(--display); font-weight: 500; font-size: 1.05rem; }
-.ad button { padding: 8px 14px; background: var(--accent); color: #fff; border: 0; border-radius: 6px; font-weight: 600; cursor: pointer; }
-.ad button:hover { filter: brightness(1.08); }
+.rail-text { font-family: var(--display); font-weight: 500; font-size: 1.05rem; }
+.rail-box button { padding: 8px 14px; background: var(--accent); color: #fff; border: 0; border-radius: 6px; font-weight: 600; cursor: pointer; }
+.rail-box button:hover { filter: brightness(1.08); }
 
 @media (max-width: 1180px) {
-  .layout { grid-template-columns: minmax(0, 1fr) 360px; }
-  .ad-rail { grid-column: 1 / -1; position: static; }
-  .ad { flex-direction: row; justify-content: space-between; min-height: 0; padding: 12px 18px; }
+  .layout { flex-wrap: wrap; }
+  .rail-left { flex: 1 0 100%; position: static; }
+  .rail-box { flex-direction: row; justify-content: space-between; min-height: 0; padding: 12px 18px; }
 }
 @media (max-width: 920px) {
-  .layout { grid-template-columns: 1fr; }
-  .ad-rail { order: -2; }
+  .layout { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+  .layout > .market, .layout > .side, .rail-left { flex: none; }
+  .rail-left { order: -2; }
   .side { position: static; order: -1; }
   .hide-sm { display: none; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .primary, .ghost, .quick button { transition: filter 0.15s, border-color 0.15s; }
-} 
+}
