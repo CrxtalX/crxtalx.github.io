@@ -1,111 +1,929 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Paper Coin – Crypto trading simulator</title>
-  <link rel="preconnect" href="https://api.coingecko.com" crossorigin>
-  <link rel="dns-prefetch" href="https://worldtimeapi.org">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoinSim - Keep your money</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0e14;
+            color: #e2e8f0;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b0e14; }
+        ::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4a5568; }
+        
+        .glass-panel {
+            background: #131722;
+            border: 1px solid #232a3b;
+        }
+        .input-dark {
+            background: #0b0e14;
+            border: 1px solid #2d3748;
+            color: white;
+        }
+        .input-dark:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+    </style>
 </head>
-<body>
-  <header class="top">
-    <div class="brand">
-      <h1>Paper Coin</h1>
-      <p>Trade real prices with fake money.</p>
-    </div>
-    <div class="stats">
-      <div class="stat big"><span class="label">Total value</span><strong id="equity">$0.00</strong></div>
-      <div class="stat"><span class="label">Cash</span><strong id="cash">$0.00</strong></div>
-      <div class="stat"><span class="label">Profit / loss</span><strong id="pl">$0.00</strong></div>
-      <button id="add-money" class="primary small" type="button">Add money</button>
-      <button id="reset" class="ghost" type="button">Reset to $100</button>
-    </div>
-  </header>
+<body class="min-h-screen flex flex-col">
 
-  <main class="layout">
-    <aside class="rail-left">
-      <div class="rail-box" id="rail-slot">
-        <span class="rail-text">Your ad here</span>
-        <button id="rail-btn" type="button">Learn more</button>
-      </div>
-    </aside>
+    <!-- AUTHENTICATION SCREEN -->
+    <div id="auth-screen" class="fixed inset-0 z-50 bg-[#0b0e14] flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-8 shadow-2xl">
+            <div class="flex items-center justify-center gap-3 mb-8">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/30">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <span class="text-2xl font-bold tracking-tight text-white">Coin<span class="text-blue-500">Sim</span></span>
+            </div>
 
-    <section class="market" aria-label="Market">
-      <div class="market-head">
-        <input id="search" type="search" placeholder="Search any coin by name or symbol" autocomplete="off" aria-label="Search coins">
-        <span id="status" class="status" role="status">Connecting…</span>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th class="rank">#</th><th>Coin</th><th class="num">Price</th><th class="num">24h</th><th>You hold</th><th class="hide-sm">7 days</th></tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
-      <p id="empty" class="empty" hidden>No coins found. Try another name or symbol.</p>
-      <button id="more" class="ghost wide" type="button">Load 100 more coins</button>
-    </section>
+            <!-- Tabs -->
+            <div class="grid grid-cols-2 gap-2 p-1 bg-[#0b0e14] rounded-xl mb-6 border border-[#232a3b]">
+                <button id="tab-login" onclick="switchAuthTab('login')" class="py-2 text-sm font-medium rounded-lg bg-blue-600 text-white transition">Log In</button>
+                <button id="tab-signup" onclick="switchAuthTab('signup')" class="py-2 text-sm font-medium rounded-lg text-gray-400 hover:text-white transition">Sign Up</button>
+            </div>
 
-    <aside class="side">
-      <section class="panel trade" aria-label="Trade">
-        <p id="no-coin" class="empty">Pick a coin from the list to buy or sell it.</p>
-        <div id="trade-body" hidden>
-          <div class="coin-title">
-            <img id="t-img" alt="" width="36" height="36">
-            <div><h2 id="t-name"></h2><span id="t-sym" class="muted"></span></div>
-            <div class="t-price"><strong id="t-price"></strong><span id="t-chg"></span></div>
-          </div>
-          <div class="seg" role="tablist">
-            <button id="tab-buy" class="on" type="button" role="tab">Buy</button>
-            <button id="tab-sell" type="button" role="tab">Sell</button>
-          </div>
-          <label for="amount">Amount in USD</label>
-          <input id="amount" type="number" min="0" step="any" inputmode="decimal" placeholder="0.00">
-          <div class="quick">
-            <button type="button" data-pct="25">25%</button>
-            <button type="button" data-pct="50">50%</button>
-            <button type="button" data-pct="75">75%</button>
-            <button type="button" data-pct="100">Max</button>
-          </div>
-          <p id="preview" class="preview"></p>
-          <button id="submit" class="primary" type="button">Buy</button>
-          <p id="msg" class="msg" role="status"></p>
+            <!-- Error Message -->
+            <div id="auth-error" class="hidden mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm text-center"></div>
+
+            <!-- Login Form -->
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 uppercase mb-1">Username</label>
+                    <input type="text" id="login-username" required class="input-dark w-full px-4 py-3 rounded-xl text-sm" placeholder="Enter your username">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 uppercase mb-1">Password</label>
+                    <input type="password" id="login-password" required class="input-dark w-full px-4 py-3 rounded-xl text-sm" placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition shadow-lg shadow-blue-600/20 mt-2">
+                    Access Trading Terminal
+                </button>
+            </form>
+
+            <!-- Signup Form -->
+            <form id="signup-form" onsubmit="handleSignup(event)" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 uppercase mb-1">Choose Username</label>
+                    <input type="text" id="signup-username" required minlength="3" class="input-dark w-full px-4 py-3 rounded-xl text-sm" placeholder="e.g., Satoshi99">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 uppercase mb-1">Password</label>
+                    <input type="password" id="signup-password" required minlength="4" class="input-dark w-full px-4 py-3 rounded-xl text-sm" placeholder="Create a password">
+                </div>
+                <div class="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 flex items-center gap-2">
+                    <i class="fa-solid fa-gift text-blue-400"></i>
+                    <span>New accounts start with <strong>$10,000.00</strong> in simulated Dollars!</span>
+                </div>
+                <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition shadow-lg shadow-blue-600/20">
+                    Create Free Account
+                </button>
+            </form>
         </div>
-      </section>
+    </div>
 
-      <section class="panel" aria-label="Your holdings">
-        <h2>Your coins</h2>
-        <ul id="holdings" class="holdings"></ul>
-        <p id="no-hold" class="empty">You don’t own any coins yet. Pick one from the list to make your first buy.</p>
-      </section>
-    </aside>
-  </main>
+    <!-- MAIN APPLICATION -->
+    <div id="app-screen" class="hidden flex-1 flex flex-col">
+        <!-- Top Navigation -->
+        <header class="glass-panel border-b border-[#232a3b] sticky top-0 z-30">
+            <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </div>
+                        <span class="text-xl font-bold text-white">Coin<span class="text-blue-500">Sim</span></span>
+                    </div>
+                    <nav class="hidden md:flex items-center gap-1">
+                        <button onclick="switchView('markets')" id="nav-markets" class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600/10 text-blue-400">Markets (100+)</button>
+                        <button onclick="switchView('portfolio')" id="nav-portfolio" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition">Portfolio & History</button>
+                    </nav>
+                </div>
 
-  <footer>Prices from CoinGecko and the time from an online time server, both updated every minute without reloading. This is a simulation: no real money is involved.</footer>
-  <dialog id="add-dialog">
-    <form method="dialog">
-      <h2>Add money</h2>
-      <p class="muted">Top up your account with fake cash.</p>
-      <label for="add-amount">Amount in USD</label>
-      <input id="add-amount" type="number" min="1" step="any" inputmode="decimal" value="100">
-      <div class="chips">
-        <button type="button" data-add="50">$50</button>
-        <button type="button" data-add="100">$100</button>
-        <button type="button" data-add="500">$500</button>
-        <button type="button" data-add="1000">$1,000</button>
-      </div>
-      <p id="add-msg" class="msg err" role="alert"></p>
-      <div class="dlg-actions">
-        <button class="ghost" value="cancel">Cancel</button>
-        <button id="add-confirm" class="primary small" value="ok">Add money</button>
-      </div>
-    </form>
-  </dialog>
-  <script src="script.js"></script>
+                <div class="flex items-center gap-4">
+                    <!-- Cash Balance Pill -->
+                    <div class="hidden sm:flex items-center gap-3 bg-[#0b0e14] border border-[#232a3b] px-3.5 py-1.5 rounded-xl">
+                        <div>
+                            <div class="text-[10px] text-gray-400 uppercase font-semibold">Available Dollars</div>
+                            <div id="header-cash-balance" class="text-sm font-bold text-emerald-400">$0.00</div>
+                        </div>
+                        <button onclick="openDepositModal()" class="w-7 h-7 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 flex items-center justify-center transition" title="Add Dollars">
+                            <i class="fa-solid fa-plus text-xs"></i>
+                        </button>
+                    </div>
+
+                    <!-- User Profile & Logout -->
+                    <div class="flex items-center gap-3 pl-2 border-l border-[#232a3b]">
+                        <span id="header-username" class="text-sm font-medium text-gray-300 hidden sm:inline">User</span>
+                        <button onclick="handleLogout()" class="p-2 text-gray-400 hover:text-red-400 transition" title="Log Out">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Portfolio Summary Banner -->
+        <div class="bg-[#131722]/50 border-b border-[#232a3b]">
+            <div class="max-w-7xl mx-auto px-4 py-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                    <div class="text-xs text-gray-400">Total Account Value</div>
+                    <div id="stat-total-value" class="text-xl font-bold text-white mt-0.5">$0.00</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400">Crypto Holdings Value</div>
+                    <div id="stat-crypto-value" class="text-xl font-bold text-blue-400 mt-0.5">$0.00</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400">Cash Balance (Dollars)</div>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <span id="stat-cash-value" class="text-xl font-bold text-emerald-400">$0.00</span>
+                        <button onclick="openDepositModal()" class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded hover:bg-emerald-500/20 transition">+ Add Funds</button>
+                    </div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400">Market Data Feed</div>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span id="api-status-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span id="api-status-text" class="text-xs font-medium text-gray-300">Connecting to Live API...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Nav -->
+        <div class="md:hidden grid grid-cols-2 border-b border-[#232a3b] bg-[#131722]">
+            <button onclick="switchView('markets')" class="py-3 text-sm font-medium text-blue-400 border-b-2 border-blue-500">Markets</button>
+            <button onclick="switchView('portfolio')" class="py-3 text-sm font-medium text-gray-400">Portfolio</button>
+        </div>
+
+        <!-- Main Content Container -->
+        <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
+            
+            <!-- MARKETS VIEW -->
+            <div id="view-markets" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Left/Center: Coin Market Table -->
+                <div class="lg:col-span-2 glass-panel rounded-2xl flex flex-col overflow-hidden">
+                    <div class="p-4 border-b border-[#232a3b] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <h2 class="font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-blue-500"></i> Live Cryptocurrency Market
+                        </h2>
+                        <div class="relative w-full sm:w-64">
+                            <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                            <input type="text" id="coin-search" oninput="filterCoins()" placeholder="Search 100+ coins (e.g. BTC, SOL)..." class="input-dark w-full pl-8 pr-3 py-2 rounded-xl text-xs">
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto flex-1 max-h-[650px]">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-[#0b0e14] text-gray-400 text-[11px] uppercase sticky top-0 z-10">
+                                <tr>
+                                    <th class="py-3 px-4">#</th>
+                                    <th class="py-3 px-4">Asset</th>
+                                    <th class="py-3 px-4 text-right">Price (USD)</th>
+                                    <th class="py-3 px-4 text-right">24h %</th>
+                                    <th class="py-3 px-4 text-right hidden sm:table-cell">Market Cap</th>
+                                    <th class="py-3 px-4 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="market-table-body" class="divide-y divide-[#232a3b] text-sm">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Right: Instant Order Ticket -->
+                <div class="glass-panel rounded-2xl p-5 h-fit sticky top-20">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#232a3b]">
+                        <div class="flex items-center gap-3">
+                            <img id="trade-coin-img" src="" alt="" class="w-8 h-8 rounded-full bg-gray-800">
+                            <div>
+                                <div id="trade-coin-name" class="font-bold text-white leading-tight">Bitcoin</div>
+                                <div id="trade-coin-symbol" class="text-xs text-gray-400 uppercase">BTC</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div id="trade-coin-price" class="font-bold text-white">$0.00</div>
+                            <div id="trade-coin-change" class="text-xs text-emerald-400">+0.00%</div>
+                        </div>
+                    </div>
+
+                    <!-- Buy / Sell Toggle -->
+                    <div class="grid grid-cols-2 gap-2 p-1 bg-[#0b0e14] rounded-xl mb-5 border border-[#232a3b]">
+                        <button id="btn-mode-buy" onclick="setTradeMode('buy')" class="py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white transition">Buy</button>
+                        <button id="btn-mode-sell" onclick="setTradeMode('sell')" class="py-2 text-sm font-semibold rounded-lg text-gray-400 hover:text-white transition">Sell</button>
+                    </div>
+
+                    <form onsubmit="executeTrade(event)" class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Amount in Dollars ($)</span>
+                                <span id="trade-available-label" class="cursor-pointer text-blue-400 hover:underline" onclick="fillMaxTrade()">Max: $0.00</span>
+                            </div>
+                            <div class="relative">
+                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                <input type="number" step="any" min="0.01" id="trade-usd-amount" oninput="calculateCoinPreview()" required class="input-dark w-full pl-8 pr-4 py-3 rounded-xl text-sm font-medium" placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <!-- Quick Percentage Buttons -->
+                        <div class="grid grid-cols-4 gap-2">
+                            <button type="button" onclick="setTradePercent(0.25)" class="py-1.5 bg-[#0b0e14] hover:bg-[#1e2536] border border-[#232a3b] rounded-lg text-xs text-gray-300">25%</button>
+                            <button type="button" onclick="setTradePercent(0.50)" class="py-1.5 bg-[#0b0e14] hover:bg-[#1e2536] border border-[#232a3b] rounded-lg text-xs text-gray-300">50%</button>
+                            <button type="button" onclick="setTradePercent(0.75)" class="py-1.5 bg-[#0b0e14] hover:bg-[#1e2536] border border-[#232a3b] rounded-lg text-xs text-gray-300">75%</button>
+                            <button type="button" onclick="setTradePercent(1.00)" class="py-1.5 bg-[#0b0e14] hover:bg-[#1e2536] border border-[#232a3b] rounded-lg text-xs text-gray-300">100%</button>
+                        </div>
+
+                        <div class="p-3 rounded-xl bg-[#0b0e14] border border-[#232a3b] space-y-2 text-xs">
+                            <div class="flex justify-between text-gray-400">
+                                <span>Estimated Quantity:</span>
+                                <span id="trade-preview-qty" class="text-white font-semibold">0.000000 BTC</span>
+                            </div>
+                            <div class="flex justify-between text-gray-400">
+                                <span>Trading Fee (0% Sim):</span>
+                                <span class="text-emerald-400">$0.00</span>
+                            </div>
+                            <div class="flex justify-between text-gray-400 pt-1 border-t border-[#232a3b]">
+                                <span>Your Current Holding:</span>
+                                <span id="trade-current-holding" class="text-gray-200">0.0000 BTC</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="trade-submit-btn" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition shadow-lg shadow-emerald-600/20">
+                            Buy Bitcoin
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- PORTFOLIO VIEW -->
+            <div id="view-portfolio" class="hidden space-y-6">
+                <!-- Holdings Table -->
+                <div class="glass-panel rounded-2xl overflow-hidden">
+                    <div class="p-4 border-b border-[#232a3b] flex justify-between items-center">
+                        <h2 class="font-bold text-white"><i class="fa-solid fa-wallet text-blue-500 mr-2"></i>Your Crypto Assets</h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-[#0b0e14] text-gray-400 text-[11px] uppercase">
+                                <tr>
+                                    <th class="py-3 px-4">Asset</th>
+                                    <th class="py-3 px-4 text-right">Balance</th>
+                                    <th class="py-3 px-4 text-right">Avg. Buy Price</th>
+                                    <th class="py-3 px-4 text-right">Current Price</th>
+                                    <th class="py-3 px-4 text-right">Total Value</th>
+                                    <th class="py-3 px-4 text-right">Profit / Loss</th>
+                                    <th class="py-3 px-4 text-right">Trade</th>
+                                </tr>
+                            </thead>
+                            <tbody id="portfolio-table-body" class="divide-y divide-[#232a3b] text-sm">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Transaction History -->
+                <div class="glass-panel rounded-2xl overflow-hidden">
+                    <div class="p-4 border-b border-[#232a3b]">
+                        <h2 class="font-bold text-white"><i class="fa-solid fa-clock-rotate-left text-purple-500 mr-2"></i>Order & Deposit History</h2>
+                    </div>
+                    <div class="overflow-x-auto max-h-96">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-[#0b0e14] text-gray-400 text-[11px] uppercase">
+                                <tr>
+                                    <th class="py-3 px-4">Date & Time</th>
+                                    <th class="py-3 px-4">Type</th>
+                                    <th class="py-3 px-4">Asset</th>
+                                    <th class="py-3 px-4 text-right">Amount</th>
+                                    <th class="py-3 px-4 text-right">Price</th>
+                                    <th class="py-3 px-4 text-right">Total Dollars</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body" class="divide-y divide-[#232a3b] text-sm">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ADD DOLLARS MODAL -->
+    <div id="deposit-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-money-bill-wave text-emerald-400"></i> Add Simulated Dollars
+                </h3>
+                <button onclick="closeDepositModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-gray-400 mb-4">Top up your paper trading account with virtual Dollars to practice trading strategies risk-free.</p>
+            
+            <div class="grid grid-cols-3 gap-2 mb-4">
+                <button type="button" onclick="setDepositAmount(1000)" class="py-2 bg-[#0b0e14] hover:border-emerald-500 border border-[#232a3b] rounded-xl text-sm font-semibold text-white">+$1,000</button>
+                <button type="button" onclick="setDepositAmount(10000)" class="py-2 bg-[#0b0e14] hover:border-emerald-500 border border-[#232a3b] rounded-xl text-sm font-semibold text-white">+$10,000</button>
+                <button type="button" onclick="setDepositAmount(50000)" class="py-2 bg-[#0b0e14] hover:border-emerald-500 border border-[#232a3b] rounded-xl text-sm font-semibold text-white">+$50,000</button>
+            </div>
+
+            <form onsubmit="handleDeposit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs text-gray-400 uppercase mb-1">Custom Amount (Dollars)</label>
+                    <input type="number" id="deposit-amount" min="1" max="10000000" step="any" required value="5000" class="input-dark w-full px-4 py-3 rounded-xl text-base font-bold text-emerald-400">
+                </div>
+                <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition">
+                    Deposit Dollars Instantly
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="glass-panel border-l-4 border-emerald-500 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+            <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400"></i>
+            <span id="toast-msg" class="text-sm font-medium text-white">Success</span>
+        </div>
+    </div>
+
+    <script>
+        // ================= STATE MANAGEMENT =================
+        let currentUser = null;
+        let coinsData = [];
+        let selectedCoin = null;
+        let tradeMode = 'buy'; // 'buy' or 'sell'
+
+        // Format currency helper
+        const formatUSD = (num) => {
+            if (num === undefined || num === null) return '$0.00';
+            if (num > 0 && num < 0.01) return '$' + num.toFixed(6);
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
+        };
+
+        // Toast Notification
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const panel = toast.firstElementChild;
+            
+            document.getElementById('toast-msg').innerText = msg;
+            if (isError) {
+                panel.classList.replace('border-emerald-500', 'border-red-500');
+                icon.className = 'fa-solid fa-circle-exclamation text-red-400';
+            } else {
+                panel.classList.replace('border-red-500', 'border-emerald-500');
+                icon.className = 'fa-solid fa-circle-check text-emerald-400';
+            }
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // ================= AUTHENTICATION SYSTEM =================
+        function getUsersDB() {
+            return JSON.parse(localStorage.getItem('coinsim_users') || '{}');
+        }
+
+        function saveUsersDB(db) {
+            localStorage.setItem('coinsim_users', JSON.stringify(db));
+        }
+
+        function switchAuthTab(tab) {
+            const loginForm = document.getElementById('login-form');
+            const signupForm = document.getElementById('signup-form');
+            const tabLogin = document.getElementById('tab-login');
+            const tabSignup = document.getElementById('tab-signup');
+            document.getElementById('auth-error').classList.add('hidden');
+
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+                tabLogin.className = 'py-2 text-sm font-medium rounded-lg bg-blue-600 text-white transition';
+                tabSignup.className = 'py-2 text-sm font-medium rounded-lg text-gray-400 hover:text-white transition';
+            } else {
+                loginForm.classList.add('hidden');
+                signupForm.classList.remove('hidden');
+                tabSignup.className = 'py-2 text-sm font-medium rounded-lg bg-blue-600 text-white transition';
+                tabLogin.className = 'py-2 text-sm font-medium rounded-lg text-gray-400 hover:text-white transition';
+            }
+        }
+
+        function showAuthError(msg) {
+            const err = document.getElementById('auth-error');
+            err.innerText = msg;
+            err.classList.remove('hidden');
+        }
+
+        function handleSignup(e) {
+            e.preventDefault();
+            const username = document.getElementById('signup-username').value.trim();
+            const password = document.getElementById('signup-password').value;
+            const db = getUsersDB();
+
+            if (db[username.toLowerCase()]) {
+                return showAuthError('Username already exists. Please choose another.');
+            }
+
+            const newUser = {
+                username: username,
+                password: btoa(password), // Basic encoding for demo storage
+                cash: 0.00, // Starting $10,000 simulated Dollars
+                portfolio: {}, // { coinId: { qty, avgPrice, symbol, name } }
+                history: [{
+                    date: new Date().toLocaleString(),
+                    type: 'DEPOSIT',
+                    asset: 'DOLLARS',
+                    qty: 10000,
+                    price: 1,
+                    total: 10000
+                }]
+            };
+
+            db[username.toLowerCase()] = newUser;
+            saveUsersDB(db);
+            loginUser(newUser);
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            const db = getUsersDB();
+            const user = db[username.toLowerCase()];
+
+            if (!user || user.password !== btoa(password)) {
+                return showAuthError('Invalid username or password.');
+            }
+
+            loginUser(user);
+        }
+
+        function loginUser(user) {
+            currentUser = user;
+            localStorage.setItem('coinsim_session', user.username.toLowerCase());
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.remove('hidden');
+            document.getElementById('header-username').innerText = user.username;
+            
+            fetchMarketData();
+            updateUI();
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            localStorage.removeItem('coinsim_session');
+            document.getElementById('app-screen').classList.add('hidden');
+            document.getElementById('auth-screen').classList.remove('hidden');
+        }
+
+        function syncUserData() {
+            if (!currentUser) return;
+            const db = getUsersDB();
+            db[currentUser.username.toLowerCase()] = currentUser;
+            saveUsersDB(db);
+            updateUI();
+        }
+
+        // ================= LIVE CRYPTO API (250 COINS) =================
+        async function fetchMarketData() {
+            const statusDot = document.getElementById('api-status-dot');
+            const statusText = document.getElementById('api-status-text');
+
+            try {
+                // Fetch top 250 coins by market cap from CoinGecko public API
+                const res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false');
+                if (!res.ok) throw new Error('API Rate Limit');
+                const data = await res.json();
+                
+                coinsData = data.map((c, idx) => ({
+                    rank: c.market_cap_rank || idx + 1,
+                    id: c.id,
+                    symbol: c.symbol.toUpperCase(),
+                    name: c.name,
+                    image: c.image,
+                    price: c.current_price,
+                    change24h: c.price_change_percentage_24h || 0,
+                    marketCap: c.market_cap
+                }));
+
+                statusDot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+                statusText.innerText = `Live CoinGecko API (${coinsData.length} Coins)`;
+            } catch (err) {
+                // Fallback generator if user hits CoinGecko public rate limits
+                statusDot.className = 'w-2 h-2 rounded-full bg-amber-500';
+                statusText.innerText = 'Simulated Live Feed (200 Coins)';
+                if (coinsData.length === 0) generateFallbackCoins();
+                else simulatePriceTicks();
+            }
+
+            if (!selectedCoin && coinsData.length > 0) {
+                selectCoinForTrade(coinsData[0].id);
+            } else if (selectedCoin) {
+                const updated = coinsData.find(c => c.id === selectedCoin.id);
+                if (updated) selectCoinForTrade(updated.id, false);
+            }
+
+            renderMarketTable();
+            updateUI();
+        }
+
+        function generateFallbackCoins() {
+            const majors = [
+                { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', price: 94250.00 },
+                { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', price: 3420.50 },
+                { id: 'solana', symbol: 'SOL', name: 'Solana', price: 215.80 },
+                { id: 'binancecoin', symbol: 'BNB', name: 'BNB', price: 645.20 },
+                { id: 'ripple', symbol: 'XRP', name: 'XRP', price: 1.45 },
+                { id: 'cardano', symbol: 'ADA', name: 'Cardano', price: 0.98 },
+                { id: 'dogecoin', symbol: 'DOGE', name: 'Dogecoin', price: 0.38 },
+                { id: 'avalanche-2', symbol: 'AVAX', name: 'Avalanche', price: 42.10 },
+                { id: 'chainlink', symbol: 'LINK', name: 'Chainlink', price: 18.90 },
+                { id: 'polkadot', symbol: 'DOT', name: 'Polkadot', price: 8.45 }
+            ];
+            
+            coinsData = [];
+            for (let i = 0; i < 200; i++) {
+                if (i < majors.length) {
+                    coinsData.push({
+                        rank: i + 1,
+                        ...majors[i],
+                        image: `https://ui-avatars.com/api/?name=${majors[i].symbol}&background=1e293b&color=38bdf8&bold=true`,
+                        change24h: (Math.random() * 14 - 5),
+                        marketCap: majors[i].price * 19000000
+                    });
+                } else {
+                    const sym = 'COIN' + (i + 1);
+                    const price = +(Math.random() * 150 + 0.05).toFixed(4);
+                    coinsData.push({
+                        rank: i + 1,
+                        id: 'sim-coin-' + (i + 1),
+                        symbol: sym,
+                        name: `SimToken ${i + 1}`,
+                        image: `https://ui-avatars.com/api/?name=${sym}&background=1e293b&color=94a3b8`,
+                        price: price,
+                        change24h: (Math.random() * 20 - 10),
+                        marketCap: price * 5000000
+                    });
+                }
+            }
+        }
+
+        function simulatePriceTicks() {
+            coinsData.forEach(c => {
+                const delta = 1 + (Math.random() * 0.006 - 0.003);
+                c.price = +(c.price * delta).toFixed(c.price < 1 ? 6 : 2);
+            });
+        }
+
+        // ================= MARKET & TRADING UI =================
+        function renderMarketTable() {
+            const query = document.getElementById('coin-search').value.toLowerCase();
+            const tbody = document.getElementById('market-table-body');
+            
+            const filtered = coinsData.filter(c => 
+                c.name.toLowerCase().includes(query) || 
+                c.symbol.toLowerCase().includes(query)
+            );
+
+            tbody.innerHTML = filtered.map(coin => {
+                const isPos = coin.change24h >= 0;
+                const isSelected = selectedCoin && selectedCoin.id === coin.id;
+                return `
+                    <tr onclick="selectCoinForTrade('${coin.id}')" class="cursor-pointer hover:bg-[#1a202c] transition ${isSelected ? 'bg-blue-600/10' : ''}">
+                        <td class="py-3 px-4 text-gray-500 text-xs">${coin.rank}</td>
+                        <td class="py-3 px-4">
+                            <div class="flex items-center gap-3">
+                                <img src="${coin.image}" class="w-6 h-6 rounded-full" loading="lazy">
+                                <div>
+                                    <div class="font-semibold text-white">${coin.name}</div>
+                                    <div class="text-xs text-gray-400">${coin.symbol}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 text-right font-medium text-white">${formatUSD(coin.price)}</td>
+                        <td class="py-3 px-4 text-right font-medium ${isPos ? 'text-emerald-400' : 'text-red-400'}">
+                            ${isPos ? '+' : ''}${coin.change24h.toFixed(2)}%
+                        </td>
+                        <td class="py-3 px-4 text-right text-gray-400 text-xs hidden sm:table-cell">
+                            $${(coin.marketCap / 1e9).toFixed(2)}B
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            <button class="px-3 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white text-xs font-semibold transition">
+                                Trade
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterCoins() {
+            renderMarketTable();
+        }
+
+        function selectCoinForTrade(coinId, resetInput = true) {
+            selectedCoin = coinsData.find(c => c.id === coinId);
+            if (!selectedCoin) return;
+
+            document.getElementById('trade-coin-img').src = selectedCoin.image;
+            document.getElementById('trade-coin-name').innerText = selectedCoin.name;
+            document.getElementById('trade-coin-symbol').innerText = selectedCoin.symbol;
+            document.getElementById('trade-coin-price').innerText = formatUSD(selectedCoin.price);
+            
+            const changeEl = document.getElementById('trade-coin-change');
+            const isPos = selectedCoin.change24h >= 0;
+            changeEl.innerText = `${isPos ? '+' : ''}${selectedCoin.change24h.toFixed(2)}%`;
+            changeEl.className = `text-xs ${isPos ? 'text-emerald-400' : 'text-red-400'}`;
+
+            if (resetInput) document.getElementById('trade-usd-amount').value = '';
+            updateTradeTicketLabels();
+            renderMarketTable();
+        }
+
+        function setTradeMode(mode) {
+            tradeMode = mode;
+            const btnBuy = document.getElementById('btn-mode-buy');
+            const btnSell = document.getElementById('btn-mode-sell');
+            const submitBtn = document.getElementById('trade-submit-btn');
+
+            if (mode === 'buy') {
+                btnBuy.className = 'py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white transition';
+                btnSell.className = 'py-2 text-sm font-semibold rounded-lg text-gray-400 hover:text-white transition';
+                submitBtn.className = 'w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition shadow-lg shadow-emerald-600/20';
+            } else {
+                btnSell.className = 'py-2 text-sm font-semibold rounded-lg bg-red-600 text-white transition';
+                btnBuy.className = 'py-2 text-sm font-semibold rounded-lg text-gray-400 hover:text-white transition';
+                submitBtn.className = 'w-full py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition shadow-lg shadow-red-600/20';
+            }
+            updateTradeTicketLabels();
+        }
+
+        function updateTradeTicketLabels() {
+            if (!selectedCoin || !currentUser) return;
+            const holding = currentUser.portfolio[selectedCoin.id];
+            const heldQty = holding ? holding.qty : 0;
+            const heldValueUSD = heldQty * selectedCoin.price;
+
+            document.getElementById('trade-current-holding').innerText = `${heldQty.toFixed(6)} ${selectedCoin.symbol} (${formatUSD(heldValueUSD)})`;
+            
+            const submitBtn = document.getElementById('trade-submit-btn');
+            if (tradeMode === 'buy') {
+                document.getElementById('trade-available-label').innerText = `Max: ${formatUSD(currentUser.cash)}`;
+                submitBtn.innerText = `Buy ${selectedCoin.name}`;
+            } else {
+                document.getElementById('trade-available-label').innerText = `Max: ${formatUSD(heldValueUSD)}`;
+                submitBtn.innerText = `Sell ${selectedCoin.name}`;
+            }
+            calculateCoinPreview();
+        }
+
+        function setTradePercent(pct) {
+            if (!selectedCoin || !currentUser) return;
+            let maxUSD = 0;
+            if (tradeMode === 'buy') {
+                maxUSD = currentUser.cash;
+            } else {
+                const holding = currentUser.portfolio[selectedCoin.id];
+                maxUSD = holding ? holding.qty * selectedCoin.price : 0;
+            }
+            document.getElementById('trade-usd-amount').value = (maxUSD * pct).toFixed(2);
+            calculateCoinPreview();
+        }
+
+        function fillMaxTrade() {
+            setTradePercent(1.0);
+        }
+
+        function calculateCoinPreview() {
+            if (!selectedCoin) return;
+            const usd = parseFloat(document.getElementById('trade-usd-amount').value) || 0;
+            const qty = usd / selectedCoin.price;
+            document.getElementById('trade-preview-qty').innerText = `${qty.toFixed(6)} ${selectedCoin.symbol}`;
+        }
+
+        function executeTrade(e) {
+            e.preventDefault();
+            if (!selectedCoin || !currentUser) return;
+
+            const usdAmount = parseFloat(document.getElementById('trade-usd-amount').value);
+            if (isNaN(usdAmount) || usdAmount <= 0) return showToast('Enter a valid Dollar amount.', true);
+
+            const coinQty = usdAmount / selectedCoin.price;
+
+            if (tradeMode === 'buy') {
+                if (usdAmount > currentUser.cash + 0.001) {
+                    return showToast('Insufficient Dollars! Click "+ Add Funds" to deposit more.', true);
+                }
+
+                currentUser.cash = Math.max(0, currentUser.cash - usdAmount);
+                
+                if (!currentUser.portfolio[selectedCoin.id]) {
+                    currentUser.portfolio[selectedCoin.id] = {
+                        qty: 0,
+                        avgPrice: selectedCoin.price,
+                        symbol: selectedCoin.symbol,
+                        name: selectedCoin.name
+                    };
+                }
+
+                const pos = currentUser.portfolio[selectedCoin.id];
+                const totalOldCost = pos.qty * pos.avgPrice;
+                pos.qty += coinQty;
+                pos.avgPrice = (totalOldCost + usdAmount) / pos.qty;
+
+                currentUser.history.unshift({
+                    date: new Date().toLocaleString(),
+                    type: 'BUY',
+                    asset: selectedCoin.symbol,
+                    qty: coinQty,
+                    price: selectedCoin.price,
+                    total: usdAmount
+                });
+
+                showToast(`Bought ${coinQty.toFixed(5)} ${selectedCoin.symbol} for ${formatUSD(usdAmount)}`);
+            } else {
+                const pos = currentUser.portfolio[selectedCoin.id];
+                const maxVal = pos ? pos.qty * selectedCoin.price : 0;
+
+                if (!pos || usdAmount > maxVal + 0.01) {
+                    return showToast(`Insufficient ${selectedCoin.symbol} balance to sell.`, true);
+                }
+
+                const sellQty = Math.min(pos.qty, coinQty);
+                pos.qty -= sellQty;
+                currentUser.cash += usdAmount;
+
+                if (pos.qty <= 0.00000001) {
+                    delete currentUser.portfolio[selectedCoin.id];
+                }
+
+                currentUser.history.unshift({
+                    date: new Date().toLocaleString(),
+                    type: 'SELL',
+                    asset: selectedCoin.symbol,
+                    qty: sellQty,
+                    price: selectedCoin.price,
+                    total: usdAmount
+                });
+
+                showToast(`Sold ${sellQty.toFixed(5)} ${selectedCoin.symbol} for ${formatUSD(usdAmount)}`);
+            }
+
+            document.getElementById('trade-usd-amount').value = '';
+            syncUserData();
+        }
+
+        // ================= DEPOSIT DOLLARS MODAL =================
+        function openDepositModal() {
+            document.getElementById('deposit-modal').classList.remove('hidden');
+        }
+
+        function closeDepositModal() {
+            document.getElementById('deposit-modal').classList.add('hidden');
+        }
+
+        function setDepositAmount(amt) {
+            document.getElementById('deposit-amount').value = amt;
+        }
+
+        function handleDeposit(e) {
+            e.preventDefault();
+            const amt = parseFloat(document.getElementById('deposit-amount').value);
+            if (isNaN(amt) || amt <= 0) return;
+
+            currentUser.cash += amt;
+            currentUser.history.unshift({
+                date: new Date().toLocaleString(),
+                type: 'DEPOSIT',
+                asset: 'DOLLARS',
+                qty: amt,
+                price: 1,
+                total: amt
+            });
+
+            syncUserData();
+            closeDepositModal();
+            showToast(`Added ${formatUSD(amt)} Dollars to your account!`);
+        }
+
+        // ================= PORTFOLIO & NAVIGATION =================
+        function switchView(view) {
+            const marketsView = document.getElementById('view-markets');
+            const portfolioView = document.getElementById('view-portfolio');
+            const navMarkets = document.getElementById('nav-markets');
+            const navPortfolio = document.getElementById('nav-portfolio');
+
+            if (view === 'markets') {
+                marketsView.classList.remove('hidden');
+                portfolioView.classList.add('hidden');
+                navMarkets.className = 'px-4 py-2 rounded-lg text-sm font-medium bg-blue-600/10 text-blue-400';
+                navPortfolio.className = 'px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition';
+            } else {
+                marketsView.classList.add('hidden');
+                portfolioView.classList.remove('hidden');
+                navPortfolio.className = 'px-4 py-2 rounded-lg text-sm font-medium bg-blue-600/10 text-blue-400';
+                navMarkets.className = 'px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition';
+            }
+            updateUI();
+        }
+
+        function updateUI() {
+            if (!currentUser) return;
+
+            // Calculate Crypto Holdings Value
+            let totalCryptoValue = 0;
+            const portfolioRows = [];
+
+            Object.entries(currentUser.portfolio).forEach(([coinId, pos]) => {
+                const liveCoin = coinsData.find(c => c.id === coinId);
+                const currentPrice = liveCoin ? liveCoin.price : pos.avgPrice;
+                const currentValue = pos.qty * currentPrice;
+                const costBasis = pos.qty * pos.avgPrice;
+                const pnl = currentValue - costBasis;
+                const pnlPct = costBasis > 0 ? (pnl / costBasis) * 100 : 0;
+
+                totalCryptoValue += currentValue;
+
+                portfolioRows.push(`
+                    <tr class="hover:bg-[#1a202c]">
+                        <td class="py-3.5 px-4 font-bold text-white">${pos.name} <span class="text-xs text-gray-400 font-normal">${pos.symbol}</span></td>
+                        <td class="py-3.5 px-4 text-right text-gray-200">${pos.qty.toFixed(6)}</td>
+                        <td class="py-3.5 px-4 text-right text-gray-400">${formatUSD(pos.avgPrice)}</td>
+                        <td class="py-3.5 px-4 text-right text-white">${formatUSD(currentPrice)}</td>
+                        <td class="py-3.5 px-4 text-right font-bold text-white">${formatUSD(currentValue)}</td>
+                        <td class="py-3.5 px-4 text-right font-medium ${pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}">
+                            ${pnl >= 0 ? '+' : ''}${formatUSD(pnl)} (${pnlPct.toFixed(2)}%)
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <button onclick="selectCoinForTrade('${coinId}'); switchView('markets');" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold">Trade</button>
+                        </td>
+                    </tr>
+                `);
+            });
+
+            const totalAccountValue = currentUser.cash + totalCryptoValue;
+
+            // Update Header & Top Banner Stats
+            document.getElementById('header-cash-balance').innerText = formatUSD(currentUser.cash);
+            document.getElementById('stat-cash-value').innerText = formatUSD(currentUser.cash);
+            document.getElementById('stat-crypto-value').innerText = formatUSD(totalCryptoValue);
+            document.getElementById('stat-total-value').innerText = formatUSD(totalAccountValue);
+
+            // Render Portfolio Table
+            const portBody = document.getElementById('portfolio-table-body');
+            portBody.innerHTML = portfolioRows.length > 0 
+                ? portfolioRows.join('') 
+                : `<tr><td colspan="7" class="py-8 text-center text-gray-500">You don't own any crypto yet. Head to Markets to buy your first coin!</td></tr>`;
+
+            // Render History Table
+            const histBody = document.getElementById('history-table-body');
+            histBody.innerHTML = currentUser.history.map(item => {
+                let badgeClass = 'bg-blue-500/20 text-blue-400';
+                if (item.type === 'BUY') badgeClass = 'bg-emerald-500/20 text-emerald-400';
+                if (item.type === 'SELL') badgeClass = 'bg-red-500/20 text-red-400';
+
+                return `
+                    <tr class="hover:bg-[#1a202c]">
+                        <td class="py-3 px-4 text-xs text-gray-400">${item.date}</td>
+                        <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${badgeClass}">${item.type}</span></td>
+                        <td class="py-3 px-4 font-semibold text-white">${item.asset}</td>
+                        <td class="py-3 px-4 text-right text-gray-300">${item.type === 'DEPOSIT' ? '-' : item.qty.toFixed(6)}</td>
+                        <td class="py-3 px-4 text-right text-gray-400">${item.type === 'DEPOSIT' ? '-' : formatUSD(item.price)}</td>
+                        <td class="py-3 px-4 text-right font-semibold text-white">${formatUSD(item.total)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            updateTradeTicketLabels();
+        }
+
+        // ================= INITIALIZATION =================
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedSession = localStorage.getItem('coinsim_session');
+            if (savedSession) {
+                const db = getUsersDB();
+                if (db[savedSession]) {
+                    loginUser(db[savedSession]);
+                }
+            }
+            // Refresh prices every 45 seconds
+            setInterval(fetchMarketData, 45000);
+        });
+    </script>
 </body>
 </html>
